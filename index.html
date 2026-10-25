@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meal Lab Plan Builder</title>
+<meta name="description" content="Pick a goal and a budget, and get a 7-day meal plan from Meal Lab's 50-meal menu.">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#ECEEF2; --panel:#FFFFFF; --panel-2:#F5F7F9; --inset:#EFF2F5;
+    --ink:#151920; --ink-2:#4A515C; --ink-3:#7A828D;
+    --line:#E3E6EB; --line-2:#D3D8DF;
+    --accent:#0E7C86; --accent-rgb:14,124,134; --accent-soft:rgba(14,124,134,.10); --on-accent:#FFFFFF;
+    --under:#C4602B; --under-soft:rgba(196,96,43,.13);
+    --star:#B7791F;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 12px 30px rgba(16,24,40,.07);
+    --shadow-lg:0 24px 60px rgba(16,24,40,.22);
+    --radius:18px; --radius-sm:11px;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1116; --panel:#171B21; --panel-2:#1B2027; --inset:#12161B;
+      --ink:#E8EBF0; --ink-2:#AEB6C1; --ink-3:#7C8593;
+      --line:#262C34; --line-2:#333B45;
+      --accent:#33BFCB; --accent-rgb:51,191,203; --accent-soft:rgba(51,191,203,.14); --on-accent:#06262A;
+      --under:#E08A4E; --under-soft:rgba(224,138,78,.17);
+      --star:#E9B650;
+      --shadow:0 1px 2px rgba(0,0,0,.34), 0 14px 36px rgba(0,0,0,.42);
+      --shadow-lg:0 28px 70px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1116; --panel:#171B21; --panel-2:#1B2027; --inset:#12161B;
+    --ink:#E8EBF0; --ink-2:#AEB6C1; --ink-3:#7C8593;
+    --line:#262C34; --line-2:#333B45;
+    --accent:#33BFCB; --accent-rgb:51,191,203; --accent-soft:rgba(51,191,203,.14); --on-accent:#06262A;
+    --under:#E08A4E; --under-soft:rgba(224,138,78,.17);
+    --star:#E9B650;
+    --shadow:0 1px 2px rgba(0,0,0,.34), 0 14px 36px rgba(0,0,0,.42);
+    --shadow-lg:0 28px 70px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility}
+  .wrap{max-width:1120px; margin:0 auto; padding:28px 22px 48px}
+  @media (max-width:640px){ .wrap{padding:18px 16px 40px} }
+
+  /* header */
+  header.top{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:6px}
+  h1{font-size:clamp(24px,3.4vw,32px); line-height:1.1; margin:0; letter-spacing:-.02em; font-weight:800; text-wrap:balance}
+  .lede{margin:0 0 18px; color:var(--ink-2); font-size:14.5px}
+  .top-actions{display:flex; gap:8px; flex:none}
+  .how-btn{display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 15px; border-radius:11px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); cursor:pointer; font:600 13.5px/1 var(--sans); box-shadow:var(--shadow); white-space:nowrap}
+  .how-btn:hover{border-color:var(--accent); color:var(--accent)}
+  .how-btn svg{width:16px; height:16px}
+  .icon-btn{width:40px; height:40px; border-radius:11px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink-2); cursor:pointer; display:grid; place-items:center; box-shadow:var(--shadow)}
+  .icon-btn:hover{color:var(--ink); border-color:var(--accent)}
+  .icon-btn svg{width:18px; height:18px}
+  button:focus-visible, tr:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+  /* goal picker */
+  .tabs{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:0 0 18px}
+  @media (max-width:640px){ .tabs{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  .tab{appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:var(--radius-sm); padding:14px 12px 13px; cursor:pointer; font-family:inherit; text-align:center; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:var(--shadow); transition:border-color .14s, transform .08s}
+  .tab:hover{border-color:var(--line-2); transform:translateY(-2px)}
+  .tab[aria-selected="true"]{border-color:var(--accent); transform:translateY(-2px); box-shadow:0 0 0 3px var(--accent-soft), var(--shadow)}
+  .tab .tname{font-size:15px; font-weight:700; line-height:1.15}
+  .tab .tmodel{font-size:12px; color:var(--ink-3); line-height:1.3}
+  .tab[aria-selected="true"] .tmodel{color:var(--accent)}
+
+  /* layout */
+  .grid{display:grid; grid-template-columns:minmax(0,340px) minmax(0,1fr); gap:18px; align-items:start}
+  @media (max-width:880px){ .grid{grid-template-columns:minmax(0,1fr)} }
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+  .grid + .card{margin-top:18px}
+  .card-h{padding:16px 20px 0}
+  .card-h h2{font-size:14px; margin:0; font-weight:700; letter-spacing:.005em}
+  .card-b{padding:10px 20px 20px}
+
+  /* inputs */
+  .field{display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px 0}
+  .field label{font-size:13.5px}
+  .field label b{display:block; font-weight:600}
+  .field label span{display:block; font-size:12px; color:var(--ink-3)}
+  .inp{position:relative; display:flex; align-items:center}
+  .inp .pre{position:absolute; left:11px; font-family:var(--mono); font-size:13px; color:var(--ink-3); pointer-events:none}
+  .inp input{width:116px; font-family:var(--mono); font-size:14px; font-weight:600; color:var(--ink); background:var(--inset); border:1px solid var(--line-2); border-radius:10px; padding:9px 12px 9px 23px}
+  .inp input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
+  .inp input::-webkit-outer-spin-button,.inp input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+  .inp input[type=number]{-moz-appearance:textfield; appearance:textfield}
+  .field-block{padding:12px 0 4px; border-top:1px solid var(--line)}
+  .field-block .lab{font-size:13.5px; font-weight:600; margin-bottom:8px}
+  .seg{display:grid; grid-template-columns:repeat(var(--n,3),minmax(0,1fr)); gap:4px; background:var(--inset); border:1px solid var(--line-2); border-radius:11px; padding:4px}
+  .seg button{appearance:none; border:0; background:transparent; color:var(--ink-2); font:600 13px/1.2 var(--sans); padding:8px 6px; border-radius:8px; cursor:pointer}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--accent); color:var(--on-accent)}
+  .seg-note{font-size:12px; color:var(--ink-3); margin-top:7px}
+  .btn{margin-top:16px; appearance:none; border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink-2); font:600 12.5px/1 var(--sans); padding:9px 12px; border-radius:9px; cursor:pointer}
+  .btn:hover{color:var(--ink); border-color:var(--accent)}
+  .btn.primary{background:var(--accent); color:var(--on-accent); border-color:var(--accent); margin-top:10px}
+
+  /* result */
+  .hero{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-top:4px}
+  .hero .big{font-family:var(--mono); font-weight:700; font-size:clamp(48px,7.5vw,66px); line-height:1; letter-spacing:-.03em; color:var(--accent); font-variant-numeric:tabular-nums}
+  .hero .unit{font-size:17px; font-weight:600; color:var(--ink-3)}
+  .star{color:var(--star)}
+  .stats{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:18px}
+  @media (max-width:520px){ .stats{grid-template-columns:minmax(0,1fr)} }
+  .stat{background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:11px 13px}
+  .stat .k{font-size:12px; color:var(--ink-3)}
+  .stat .v{font-family:var(--mono); font-weight:700; font-size:20px; margin-top:2px; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .week-h{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:22px 0 8px}
+  .week-h h3{font-size:13.5px; margin:0; font-weight:700}
+  .week-h span{font-size:12px; color:var(--ink-3)}
+  .week{border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  .day{display:grid; grid-template-columns:52px repeat(var(--m,2),minmax(0,1fr)); gap:12px; padding:9px 13px; border-top:1px solid var(--line); align-items:start}
+  .day:first-child{border-top:0}
+  .day:nth-child(odd){background:var(--panel-2)}
+  .day .d{font-size:12px; font-weight:700; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; padding-top:2px}
+  .meal{min-width:0}
+  .meal .n{font-size:13.5px; font-weight:600; line-height:1.3}
+  .meal .m{font-family:var(--mono); font-size:11.5px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+  @media (max-width:520px){ .day{grid-template-columns:minmax(0,1fr); gap:6px} }
+  .check{margin-top:14px; padding:11px 13px; border-radius:10px; font-size:12.5px; background:var(--accent-soft); color:var(--ink-2); display:flex; gap:8px; align-items:flex-start}
+  .check svg{width:15px; height:15px; flex:none; margin-top:1px; color:var(--accent)}
+  .check b{color:var(--ink)}
+  .err{padding:14px 15px; border-radius:12px; background:var(--under-soft); color:var(--ink); font-size:14px; margin-top:4px}
+  .err b{color:var(--under)}
+  .err p{margin:0 0 4px}
+
+  /* comparison table */
+  .tbl-wrap{width:100%; overflow-x:auto}
+  table{width:100%; border-collapse:collapse; min-width:420px}
+  thead th{font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3); font-weight:600; text-align:right; padding:8px 12px; border-bottom:1px solid var(--line-2); white-space:nowrap}
+  thead th:first-child{text-align:left}
+  tbody td{font-family:var(--mono); font-size:14px; color:var(--ink); text-align:right; padding:9px 12px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums}
+  tbody td:first-child{text-align:left; font-family:var(--sans); font-weight:600}
+  tbody tr{cursor:pointer}
+  tbody tr:hover td{background:var(--panel-2)}
+  tbody tr.active td{background:var(--accent-soft)}
+  tbody tr:last-child td{border-bottom:0}
+  td.none{color:var(--ink-3); font-family:var(--sans); font-size:13px}
+  .foot{margin-top:18px; font-size:12px; color:var(--ink-3)}
+
+  /* how it works */
+  .modal-backdrop{position:fixed; inset:0; background:rgba(8,10,14,.55); display:none; align-items:center; justify-content:center; padding:20px; z-index:50}
+  .modal-backdrop.open{display:flex}
+  .modal{background:var(--panel); border:1px solid var(--line-2); border-radius:18px; box-shadow:var(--shadow-lg); max-width:660px; width:100%; max-height:86vh; overflow:auto}
+  .modal-h{position:sticky; top:0; background:var(--panel); display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 22px 14px; border-bottom:1px solid var(--line)}
+  .modal-h h3{margin:0; font-size:17px; font-weight:800; letter-spacing:-.01em}
+  .modal-close{width:34px; height:34px; border-radius:9px; border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink-2); cursor:pointer; font-size:15px; line-height:1; flex:none}
+  .modal-close:hover{color:var(--ink); border-color:var(--accent)}
+  .modal-b{padding:16px 22px 24px; font-size:14px; color:var(--ink-2); line-height:1.62}
+  .modal-b h4{color:var(--ink); font-size:13.5px; margin:18px 0 6px; font-weight:700}
+  .modal-b h4:first-child{margin-top:4px}
+  .modal-b p{margin:0 0 10px}
+  .modal-b b{color:var(--ink); font-weight:700}
+  .mrow{display:flex; justify-content:space-between; gap:14px; padding:8px 12px; background:var(--inset); border:1px solid var(--line); border-radius:9px; margin:6px 0; font-family:var(--mono); font-size:12.5px}
+  .mrow .ml{color:var(--ink-2)} .mrow .mv{color:var(--ink); font-weight:700; white-space:nowrap}
+  .tech{margin-top:14px; padding:11px 13px; border:1px dashed var(--line-2); border-radius:10px; font-family:var(--mono); font-size:12px; color:var(--ink-3); line-height:1.7; white-space:pre-wrap}
+  .tech b{color:var(--ink-2)}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important} .tab:hover,.tab[aria-selected="true"]{transform:none} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Meal Lab Plan Builder</h1>
+    <div class="top-actions">
+      <button class="how-btn" id="howBtn" type="button" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .8c0 1.7-2.5 2.2-2.5 3.7M12 17h.01"/></svg>
+        How it works
+      </button>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch between light and dark" title="Light or dark">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+      </button>
+    </div>
+  </header>
+  <p class="lede">Pick a goal and a budget. We suggest the best-rated week of meals from our 50-meal menu that meets the goal.</p>
+
+  <div class="tabs" id="tabs" role="tablist" aria-label="Choose a goal"></div>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="inTitle">
+      <div class="card-h"><h2 id="inTitle">Your preferences</h2></div>
+      <div class="card-b">
+        <div class="field">
+          <label for="in-budget"><b>Weekly budget</b><span>for all meals in the week</span></label>
+          <div class="inp"><span class="pre">$</span><input id="in-budget" type="number" min="0" step="1" inputmode="decimal" value="175"></div>
+        </div>
+        <div class="field-block">
+          <div class="lab">Meals per day</div>
+          <div class="seg" id="mSeg" style="--n:2" role="group" aria-label="Meals per day">
+            <button type="button" data-v="1">Dinner only</button>
+            <button type="button" data-v="2">Lunch and dinner</button>
+          </div>
+        </div>
+        <div class="field-block">
+          <div class="lab">Diet</div>
+          <div class="seg" id="dietSeg" style="--n:2" role="group" aria-label="Diet">
+            <button type="button" data-v="any">No restrictions</button>
+            <button type="button" data-v="pescatarian">Pescatarian</button>
+            <button type="button" data-v="vegetarian">Vegetarian</button>
+            <button type="button" data-v="vegan">Vegan</button>
+          </div>
+        </div>
+        <div class="field-block">
+          <div class="lab">Same meal at most</div>
+          <div class="seg" id="repSeg" role="group" aria-label="Same meal at most">
+            <button type="button" data-v="1">Once</button>
+            <button type="button" data-v="2">Twice</button>
+            <button type="button" data-v="3">3 times</button>
+          </div>
+          <div class="seg-note">per week</div>
+        </div>
+        <button class="btn" id="reset" type="button">Reset to example numbers</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="outTitle">
+      <div class="card-h"><h2 id="outTitle">Your week</h2></div>
+      <div class="card-b" id="out" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="cmpTitle">
+    <div class="card-h"><h2 id="cmpTitle">All four goals</h2></div>
+    <div class="card-b">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Goal</th><th>Meals that fit</th><th>Weekly price</th><th>Average rating</th></tr></thead>
+          <tbody id="cmp"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">Meal Lab is a fictitious company created as a course example. The menu, prices, ratings, and nutrition values are invented.</p>
+</div>
+
+<div class="modal-backdrop" id="howModal" role="dialog" aria-modal="true" aria-labelledby="howTitle">
+  <div class="modal">
+    <div class="modal-h"><h3 id="howTitle">How the plan is built</h3><button class="modal-close" id="howClose" type="button" aria-label="Close">&#10005;</button></div>
+    <div class="modal-b" id="howBody"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/javascript-lp-solver@0.4.24/prod/solver.js"></script>
+<script>
+(function(){
+  "use strict";
+  var DATA = {"meals":[{"id":1,"name":"Lemon Herb Chicken & Quinoa","desc":"Roasted chicken breast, lemon-herb quinoa, garlicky greens","protein_source":"Chicken","diet":"omnivore","allergens":[],"price":12.49,"food_cost":4.1,"calories":450,"protein":42,"carbs":38,"fat":14,"fiber":6,"sodium":620,"rating":4.3,"n_ratings":2140},{"id":2,"name":"Chicken Tikka Masala","desc":"Tandoori chicken in creamy tomato masala, basmati rice","protein_source":"Chicken","diet":"omnivore","allergens":["dairy"],"price":12.99,"food_cost":4.2,"calories":590,"protein":36,"carbs":62,"fat":22,"fiber":4,"sodium":1080,"rating":4.7,"n_ratings":3890},{"id":3,"name":"Teriyaki Chicken Rice Bowl","desc":"Glazed chicken thigh, jasmine rice, edamame, sesame","protein_source":"Chicken","diet":"omnivore","allergens":["soy","gluten","sesame"],"price":11.49,"food_cost":3.6,"calories":520,"protein":34,"carbs":70,"fat":12,"fiber":4,"sodium":1150,"rating":4.5,"n_ratings":3120},{"id":4,"name":"Chipotle Chicken Burrito Bowl","desc":"Chipotle chicken, cilantro-lime rice, black beans, corn salsa","protein_source":"Chicken","diet":"omnivore","allergens":["dairy"],"price":11.99,"food_cost":3.8,"calories":530,"protein":38,"carbs":58,"fat":16,"fiber":11,"sodium":980,"rating":4.6,"n_ratings":3550},{"id":5,"name":"Greek Chicken Souvlaki & Orzo","desc":"Oregano chicken skewers, lemon orzo, tzatziki","protein_source":"Chicken","diet":"omnivore","allergens":["gluten","dairy"],"price":12.99,"food_cost":4.3,"calories":510,"protein":40,"carbs":48,"fat":18,"fiber":5,"sodium":860,"rating":4.4,"n_ratings":1980},{"id":6,"name":"Chicken Pesto Penne","desc":"Grilled chicken, basil pesto, penne, roasted tomatoes","protein_source":"Chicken","diet":"omnivore","allergens":["gluten","dairy","nuts"],"price":11.99,"food_cost":3.7,"calories":630,"protein":34,"carbs":64,"fat":26,"fiber":5,"sodium":890,"rating":4.6,"n_ratings":2760},{"id":7,"name":"Thai Peanut Chicken","desc":"Chicken, peanut-lime sauce, brown rice, crunchy slaw","protein_source":"Chicken","diet":"omnivore","allergens":["nuts","soy"],"price":12.49,"food_cost":3.9,"calories":570,"protein":35,"carbs":58,"fat":22,"fiber":6,"sodium":940,"rating":4.5,"n_ratings":2210},{"id":8,"name":"Chicken Caesar Wrap","desc":"Grilled chicken, romaine, parmesan, Caesar dressing, flour tortilla","protein_source":"Chicken","diet":"omnivore","allergens":["gluten","dairy","egg"],"price":10.99,"food_cost":3.4,"calories":530,"protein":38,"carbs":40,"fat":24,"fiber":3,"sodium":1180,"rating":4.2,"n_ratings":1640},{"id":9,"name":"Turkey Meatballs & Zucchini Noodles","desc":"Herbed turkey meatballs, marinara, zucchini noodles","protein_source":"Turkey","diet":"omnivore","allergens":["egg"],"price":11.99,"food_cost":3.7,"calories":380,"protein":36,"carbs":22,"fat":16,"fiber":6,"sodium":760,"rating":4.0,"n_ratings":1320},{"id":10,"name":"Turkey & Bean Chili","desc":"Lean turkey, kidney beans, tomatoes, smoky spices","protein_source":"Turkey","diet":"omnivore","allergens":[],"price":10.49,"food_cost":3.1,"calories":400,"protein":34,"carbs":40,"fat":12,"fiber":12,"sodium":820,"rating":4.3,"n_ratings":1870},{"id":11,"name":"Buffalo Chicken Mac & Cheese","desc":"Buffalo chicken, cavatappi, cheddar cheese sauce","protein_source":"Chicken","diet":"omnivore","allergens":["gluten","dairy"],"price":12.49,"food_cost":3.8,"calories":690,"protein":38,"carbs":66,"fat":30,"fiber":3,"sodium":1320,"rating":4.8,"n_ratings":4210},{"id":12,"name":"Chicken Fajita Plate","desc":"Seared chicken, peppers and onions, black beans","protein_source":"Chicken","diet":"omnivore","allergens":[],"price":11.49,"food_cost":3.6,"calories":430,"protein":40,"carbs":36,"fat":14,"fiber":10,"sodium":780,"rating":4.2,"n_ratings":1730},{"id":13,"name":"Jerk Chicken with Rice & Peas","desc":"Allspice-thyme chicken, coconut rice and kidney beans","protein_source":"Chicken","diet":"omnivore","allergens":[],"price":11.99,"food_cost":3.7,"calories":540,"protein":38,"carbs":60,"fat":16,"fiber":7,"sodium":900,"rating":4.5,"n_ratings":2050},{"id":14,"name":"Chicken Shawarma Bowl","desc":"Spiced chicken, hummus, turmeric rice, pickled onions","protein_source":"Chicken","diet":"omnivore","allergens":["sesame"],"price":12.49,"food_cost":3.9,"calories":520,"protein":40,"carbs":46,"fat":20,"fiber":8,"sodium":950,"rating":4.6,"n_ratings":2980},{"id":15,"name":"Chicken Cauliflower Fried Rice","desc":"Chicken, cauliflower rice, peas, carrots, ginger-soy","protein_source":"Chicken","diet":"omnivore","allergens":["soy","egg"],"price":11.49,"food_cost":3.5,"calories":340,"protein":36,"carbs":18,"fat":14,"fiber":6,"sodium":720,"rating":3.8,"n_ratings":1150},{"id":16,"name":"Herb Roasted Turkey & Sweet Potato","desc":"Sliced turkey breast, mashed sweet potato, green beans","protein_source":"Turkey","diet":"omnivore","allergens":[],"price":12.49,"food_cost":4.0,"calories":410,"protein":40,"carbs":40,"fat":10,"fiber":7,"sodium":580,"rating":3.9,"n_ratings":1090},{"id":17,"name":"Steak Fajita Bowl","desc":"Flank steak, peppers, brown rice, pinto beans, salsa","protein_source":"Beef","diet":"omnivore","allergens":[],"price":14.49,"food_cost":5.2,"calories":510,"protein":40,"carbs":42,"fat":20,"fiber":8,"sodium":880,"rating":4.6,"n_ratings":2470},{"id":18,"name":"Korean Beef Bulgogi Bowl","desc":"Marinated beef, rice, kimchi, sesame spinach","protein_source":"Beef","diet":"omnivore","allergens":["soy","sesame","gluten"],"price":13.99,"food_cost":4.8,"calories":560,"protein":36,"carbs":60,"fat":20,"fiber":4,"sodium":1150,"rating":4.7,"n_ratings":3010},{"id":19,"name":"Beef Lasagna","desc":"Layered pasta, beef ragu, ricotta, mozzarella","protein_source":"Beef","diet":"omnivore","allergens":["gluten","dairy","egg"],"price":12.99,"food_cost":4.1,"calories":600,"protein":34,"carbs":52,"fat":28,"fiber":5,"sodium":1240,"rating":4.8,"n_ratings":3640},{"id":20,"name":"Steak & Roasted Potatoes","desc":"Grass-fed sirloin, rosemary potatoes, broccoli","protein_source":"Beef","diet":"omnivore","allergens":[],"price":15.99,"food_cost":6.1,"calories":540,"protein":46,"carbs":34,"fat":24,"fiber":6,"sodium":620,"rating":4.5,"n_ratings":1880},{"id":21,"name":"Beef & Broccoli","desc":"Sliced beef, broccoli, garlic-ginger sauce, jasmine rice","protein_source":"Beef","diet":"omnivore","allergens":["soy","gluten"],"price":12.99,"food_cost":4.3,"calories":500,"protein":34,"carbs":56,"fat":16,"fiber":4,"sodium":1050,"rating":4.4,"n_ratings":2330},{"id":22,"name":"Pork Carnitas Rice Bowl","desc":"Slow-braised pork, cilantro-lime rice, pico de gallo","protein_source":"Pork","diet":"omnivore","allergens":[],"price":12.49,"food_cost":3.9,"calories":550,"protein":36,"carbs":52,"fat":22,"fiber":5,"sodium":1020,"rating":4.5,"n_ratings":2190},{"id":23,"name":"Lamb Kofta & Couscous","desc":"Spiced lamb kofta, herbed couscous, cucumber-yogurt salad","protein_source":"Lamb","diet":"omnivore","allergens":["gluten","dairy"],"price":14.99,"food_cost":5.4,"calories":570,"protein":34,"carbs":50,"fat":26,"fiber":6,"sodium":880,"rating":4.3,"n_ratings":1260},{"id":24,"name":"Bunless Cheeseburger Bowl","desc":"Grass-fed patty, bacon, cheddar, greens, pickles, special sauce","protein_source":"Beef","diet":"omnivore","allergens":["dairy","egg"],"price":13.49,"food_cost":4.7,"calories":540,"protein":40,"carbs":14,"fat":36,"fiber":4,"sodium":1180,"rating":4.4,"n_ratings":1920},{"id":25,"name":"Miso Glazed Salmon","desc":"Salmon, miso glaze, bok choy, jasmine rice","protein_source":"Salmon","diet":"pescatarian","allergens":["fish","soy"],"price":15.49,"food_cost":6.0,"calories":520,"protein":36,"carbs":44,"fat":22,"fiber":4,"sodium":860,"rating":4.6,"n_ratings":2650},{"id":26,"name":"Lemon Dill Salmon & Farro","desc":"Salmon, lemon-dill sauce, asparagus, farro","protein_source":"Salmon","diet":"pescatarian","allergens":["fish","gluten"],"price":15.99,"food_cost":6.2,"calories":490,"protein":38,"carbs":36,"fat":22,"fiber":7,"sodium":540,"rating":4.4,"n_ratings":1710},{"id":27,"name":"Shrimp Scampi Linguine","desc":"Garlic-butter shrimp, linguine, parsley, lemon","protein_source":"Shrimp","diet":"pescatarian","allergens":["shellfish","gluten","dairy"],"price":13.99,"food_cost":5.1,"calories":530,"protein":30,"carbs":58,"fat":20,"fiber":3,"sodium":980,"rating":4.5,"n_ratings":2040},{"id":28,"name":"Cajun Shrimp & Grits","desc":"Blackened shrimp, cheddar grits, peppers","protein_source":"Shrimp","diet":"pescatarian","allergens":["shellfish","dairy"],"price":13.49,"food_cost":4.9,"calories":500,"protein":30,"carbs":46,"fat":22,"fiber":3,"sodium":1180,"rating":4.4,"n_ratings":1560},{"id":29,"name":"Blackened Cod & Mango Salsa","desc":"Cod, mango salsa, black beans, charred corn","protein_source":"Cod","diet":"pescatarian","allergens":["fish"],"price":13.49,"food_cost":4.8,"calories":380,"protein":36,"carbs":40,"fat":8,"fiber":10,"sodium":620,"rating":4.1,"n_ratings":1180},{"id":30,"name":"Ahi Tuna Poke Bowl","desc":"Seared tuna, sushi rice, cucumber, edamame, sesame-soy","protein_source":"Tuna","diet":"pescatarian","allergens":["fish","soy","sesame"],"price":15.49,"food_cost":6.1,"calories":480,"protein":34,"carbs":54,"fat":14,"fiber":4,"sodium":1040,"rating":4.5,"n_ratings":1830},{"id":31,"name":"Shrimp Cauliflower Rice Bowl","desc":"Chili-lime shrimp, cauliflower rice, black beans, avocado","protein_source":"Shrimp","diet":"pescatarian","allergens":["shellfish"],"price":12.99,"food_cost":4.6,"calories":320,"protein":32,"carbs":20,"fat":12,"fiber":7,"sodium":760,"rating":3.9,"n_ratings":980},{"id":32,"name":"Mediterranean Baked Cod","desc":"Cod, tomatoes, olives, chickpeas, herbs","protein_source":"Cod","diet":"pescatarian","allergens":["fish"],"price":13.99,"food_cost":4.9,"calories":380,"protein":38,"carbs":34,"fat":10,"fiber":9,"sodium":580,"rating":4.0,"n_ratings":1040},{"id":33,"name":"Salmon Caesar Salad","desc":"Grilled salmon, romaine, parmesan, Caesar dressing","protein_source":"Salmon","diet":"pescatarian","allergens":["fish","dairy","egg"],"price":14.49,"food_cost":5.6,"calories":440,"protein":34,"carbs":14,"fat":28,"fiber":4,"sodium":820,"rating":4.1,"n_ratings":1290},{"id":34,"name":"Spinach & Ricotta Stuffed Shells","desc":"Jumbo shells, ricotta, spinach, marinara","protein_source":"Cheese","diet":"vegetarian","allergens":["gluten","dairy","egg"],"price":10.99,"food_cost":3.1,"calories":500,"protein":26,"carbs":54,"fat":20,"fiber":5,"sodium":980,"rating":4.5,"n_ratings":2310},{"id":35,"name":"Black Bean Sweet Potato Enchiladas","desc":"Corn tortillas, black beans, sweet potato, red sauce, cheese","protein_source":"Beans","diet":"vegetarian","allergens":["dairy"],"price":10.49,"food_cost":2.9,"calories":480,"protein":22,"carbs":62,"fat":16,"fiber":14,"sodium":920,"rating":4.4,"n_ratings":1950},{"id":36,"name":"Margherita Flatbread & Arugula","desc":"Tomato, mozzarella, basil flatbread, arugula salad","protein_source":"Cheese","diet":"vegetarian","allergens":["gluten","dairy"],"price":9.99,"food_cost":2.7,"calories":550,"protein":22,"carbs":62,"fat":24,"fiber":4,"sodium":1080,"rating":4.3,"n_ratings":1680},{"id":37,"name":"Shakshuka & Whole-Grain Pita","desc":"Eggs in spiced tomato-pepper sauce, feta, pita","protein_source":"Egg","diet":"vegetarian","allergens":["egg","dairy","gluten"],"price":10.49,"food_cost":2.8,"calories":440,"protein":26,"carbs":40,"fat":20,"fiber":8,"sodium":860,"rating":4.1,"n_ratings":1120},{"id":38,"name":"Paneer Tikka & Cauliflower Rice","desc":"Grilled paneer, tikka sauce, cauliflower rice","protein_source":"Paneer","diet":"vegetarian","allergens":["dairy"],"price":11.99,"food_cost":3.6,"calories":430,"protein":30,"carbs":18,"fat":26,"fiber":6,"sodium":780,"rating":4.2,"n_ratings":1030},{"id":39,"name":"Greek Quinoa Bowl with Halloumi","desc":"Halloumi, quinoa, cucumber, tomato, olives, lemon","protein_source":"Cheese","diet":"vegetarian","allergens":["dairy"],"price":11.49,"food_cost":3.5,"calories":500,"protein":28,"carbs":48,"fat":22,"fiber":8,"sodium":900,"rating":4.3,"n_ratings":1420},{"id":40,"name":"Mushroom Spinach Frittata","desc":"Egg frittata, mushrooms, spinach, roasted potatoes","protein_source":"Egg","diet":"vegetarian","allergens":["egg","dairy"],"price":9.99,"food_cost":2.6,"calories":400,"protein":28,"carbs":26,"fat":20,"fiber":5,"sodium":680,"rating":3.9,"n_ratings":870},{"id":41,"name":"Three-Cheese Mac & Broccoli","desc":"Cavatappi, cheddar, fontina, parmesan, broccoli","protein_source":"Cheese","diet":"vegetarian","allergens":["gluten","dairy"],"price":9.99,"food_cost":2.8,"calories":660,"protein":26,"carbs":72,"fat":30,"fiber":4,"sodium":1220,"rating":4.7,"n_ratings":3330},{"id":42,"name":"Chana Masala & Brown Rice","desc":"Chickpeas in tomato-ginger masala, brown rice","protein_source":"Chickpeas","diet":"vegan","allergens":[],"price":9.49,"food_cost":2.3,"calories":480,"protein":20,"carbs":72,"fat":12,"fiber":14,"sodium":820,"rating":4.3,"n_ratings":1760},{"id":43,"name":"Red Lentil Dal & Basmati","desc":"Red lentils, spinach, coconut, basmati rice","protein_source":"Lentils","diet":"vegan","allergens":[],"price":9.49,"food_cost":2.2,"calories":460,"protein":24,"carbs":68,"fat":10,"fiber":13,"sodium":680,"rating":4.2,"n_ratings":1340},{"id":44,"name":"Tofu Pad Thai","desc":"Rice noodles, tofu, bean sprouts, peanuts, tamarind","protein_source":"Tofu","diet":"vegan","allergens":["soy","nuts"],"price":10.99,"food_cost":3.0,"calories":570,"protein":24,"carbs":68,"fat":22,"fiber":5,"sodium":1120,"rating":4.5,"n_ratings":2450},{"id":45,"name":"Tofu Broccoli Teriyaki Bowl","desc":"Crispy tofu, broccoli, teriyaki, brown rice, sesame","protein_source":"Tofu","diet":"vegan","allergens":["soy","gluten","sesame"],"price":10.99,"food_cost":2.9,"calories":480,"protein":28,"carbs":56,"fat":16,"fiber":6,"sodium":980,"rating":4.2,"n_ratings":1290},{"id":46,"name":"Tempeh Buddha Bowl","desc":"Tempeh, quinoa, roasted vegetables, tahini dressing","protein_source":"Tempeh","diet":"vegan","allergens":["soy","sesame"],"price":11.49,"food_cost":3.3,"calories":500,"protein":32,"carbs":48,"fat":20,"fiber":11,"sodium":640,"rating":4.0,"n_ratings":960},{"id":47,"name":"Three-Bean Chili & Cornbread","desc":"Black, kidney and pinto beans, vegan cornbread","protein_source":"Beans","diet":"vegan","allergens":["gluten"],"price":9.49,"food_cost":2.4,"calories":470,"protein":26,"carbs":64,"fat":12,"fiber":18,"sodium":860,"rating":4.1,"n_ratings":1180},{"id":48,"name":"Falafel Bowl with Hummus","desc":"Baked falafel, hummus, tabbouleh, pickled vegetables","protein_source":"Chickpeas","diet":"vegan","allergens":["sesame","gluten"],"price":10.49,"food_cost":2.8,"calories":570,"protein":20,"carbs":64,"fat":26,"fiber":13,"sodium":980,"rating":4.4,"n_ratings":1890},{"id":49,"name":"Lentil Bolognese Spaghetti","desc":"Lentil-mushroom ragu, whole-wheat spaghetti","protein_source":"Lentils","diet":"vegan","allergens":["gluten"],"price":9.99,"food_cost":2.5,"calories":490,"protein":28,"carbs":72,"fat":10,"fiber":15,"sodium":720,"rating":4.0,"n_ratings":1010},{"id":50,"name":"Seitan Steak & Chimichurri","desc":"Seared seitan, chimichurri, roasted vegetables","protein_source":"Seitan","diet":"vegan","allergens":["gluten","soy"],"price":12.49,"food_cost":3.8,"calories":410,"protein":40,"carbs":30,"fat":14,"fiber":7,"sodium":880,"rating":3.8,"n_ratings":640}],"profiles":{"lose":{"name":"Lose weight","blurb":"Lighter meals, high protein, high fiber","cal_min":350,"cal_max":550,"protein_min":26,"carbs_max":null,"fat_max":20,"fiber_min":7,"sodium_max":850},"maintain":{"name":"Eat balanced","blurb":"Moderate calories, steady protein","cal_min":450,"cal_max":700,"protein_min":20,"carbs_max":null,"fat_max":26,"fiber_min":6,"sodium_max":950},"muscle":{"name":"Build muscle","blurb":"Bigger meals, high protein","cal_min":500,"cal_max":800,"protein_min":34,"carbs_max":null,"fat_max":null,"fiber_min":5,"sodium_max":1000},"lowcarb":{"name":"Lower carb","blurb":"Carbs capped, protein kept high","cal_min":350,"cal_max":650,"protein_min":25,"carbs_max":30,"fat_max":null,"fiber_min":5,"sodium_max":950}}};
+  var MEALS = DATA.meals, GOALS = DATA.profiles, ORDER = ["lose", "maintain", "muscle", "lowcarb"];
+  var BYID = {}; MEALS.forEach(function(m){ BYID[m.id] = m; });
+  var DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  var DIET_OK = {
+    any: function(){ return true; },
+    pescatarian: function(d){ return d !== "omnivore"; },
+    vegetarian: function(d){ return d === "vegetarian" || d === "vegan"; },
+    vegan: function(d){ return d === "vegan"; }
+  };
+  var DIET_WORD = { any: "", pescatarian: "pescatarian", vegetarian: "vegetarian", vegan: "vegan" };
+  var EXAMPLE = { goal: "lose", budget: 175, m: 2, diet: "any", rep: 2 };
+  var state = Object.assign({}, EXAMPLE);
+  function el(id){ return document.getElementById(id); }
+  function money(x){ return "$" + x.toFixed(2); }
+  function n0(x){ return Math.round(x).toLocaleString("en-US"); }
+  function n1(x){ return (Math.round(x * 10) / 10).toLocaleString("en-US"); }
+
+  /* ---------- the model ---------- */
+  // Meals that fit: right diet, calories inside the goal's window, protein above its floor.
+  function fits(goal, diet){
+    var G = GOALS[goal];
+    return MEALS.filter(function(m){ return DIET_OK[diet](m.diet) && m.calories >= G.cal_min && m.calories <= G.cal_max && m.protein >= G.protein_min; });
+  }
+  // Integer program: y_i = times meal i appears. Maximize total rating subject to
+  // plan size, budget, weekly averages (fat, carbs, fiber, sodium), and the repeat limit.
+  function solve(goal, s, noBudget){
+    var G = GOALS[goal], N = 7 * s.m, E = fits(goal, s.diet);
+    if (!E.length) return null;
+    var c = { total: { equal: N } };
+    if (!noBudget) c.budget = { max: s.budget + 1e-6 };
+    if (G.fat_max != null) c.fat = { max: N * G.fat_max };
+    if (G.carbs_max != null) c.carbs = { max: N * G.carbs_max };
+    if (G.fiber_min != null) c.fiber = { min: N * G.fiber_min };
+    if (G.sodium_max != null) c.sodium = { max: N * G.sodium_max };
+    var v = {}, ints = {};
+    E.forEach(function(m){
+      var k = "y_" + m.id; c["cap_" + m.id] = { max: s.rep };
+      var col = { total: 1, budget: m.price, fat: m.fat, carbs: m.carbs, fiber: m.fiber, sodium: m.sodium };
+      col["cap_" + m.id] = 1;
+      col.obj = noBudget ? -m.price : m.rating - 0.0005 * m.price;   // without a budget: find the cheapest plan
+      v[k] = col; ints[k] = 1;
+    });
+    var r = solver.Solve({ optimize: "obj", opType: "max", constraints: c, variables: v, ints: ints });
+    if (!r.feasible) return null;
+    var counts = {}, n = 0;
+    Object.keys(r).forEach(function(k){ if (k.indexOf("y_") === 0) { var q = Math.round(r[k]); if (q > 0) { counts[+k.slice(2)] = q; n += q; } } });
+    if (n !== N) return null;
+    var t = { price: 0, rating: 0, calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sodium: 0 };
+    Object.keys(counts).forEach(function(id){ var m = BYID[id]; for (var k in t) t[k] += m[k] * counts[id]; });
+    var avg = {}; for (var k in t) avg[k] = t[k] / N;
+    return { counts: counts, n: N, price: t.price, avg: avg, distinct: Object.keys(counts).length, fit: E.length };
+  }
+
+  /* ---------- spread the meals over the week ---------- */
+  function arrange(counts, m){
+    var items = [];
+    Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a] || a - b; }).forEach(function(id){ for (var k = 0; k < counts[id]; k++) items.push(+id); });
+    var days = [[], [], [], [], [], [], []], d = 0;
+    // deal copies of the same meal to days far apart, filling each day up to m meals
+    items.forEach(function(id){
+      var best = -1, bestP = 1e9;
+      for (var j = 0; j < 7; j++) {
+        var dd = (d + j) % 7; if (days[dd].length >= m || days[dd].indexOf(id) >= 0) continue;
+        var p = 0; for (var e = 0; e < 7; e++) if (e !== dd && days[e].indexOf(id) >= 0) { var g = Math.abs(e - dd); p += g === 1 ? 10 : g === 2 ? 1 : 0; }
+        if (p < bestP) { bestP = p; best = dd; }
+      }
+      if (best < 0) for (var j2 = 0; j2 < 7; j2++) if (days[j2].length < m) { best = j2; break; }
+      days[best].push(id); d = (best + 3) % 7;
+    });
+    return days.map(function(x){ return x.sort(function(a, b){ return BYID[a].calories - BYID[b].calories; }); });
+  }
+
+  /* ---------- render ---------- */
+  function renderTabs(){
+    el("tabs").innerHTML = ORDER.map(function(g){
+      var G = GOALS[g];
+      return '<button class="tab" type="button" role="tab" data-g="' + g + '" aria-selected="' + (state.goal === g) + '"><span class="tname">' + G.name + '</span><span class="tmodel">' + G.cal_min + " to " + G.cal_max + " kcal, " + G.protein_min + "+ g protein per meal</span></button>";
+    }).join("");
+  }
+  function renderControls(){
+    [["mSeg", "m"], ["dietSeg", "diet"], ["repSeg", "rep"]].forEach(function(p){
+      el(p[0]).querySelectorAll("button").forEach(function(b){ b.classList.toggle("on", String(state[p[1]]) === b.getAttribute("data-v")); });
+    });
+    if (document.activeElement !== el("in-budget")) el("in-budget").value = state.budget;
+  }
+  function renderOut(){
+    var G = GOALS[state.goal], p = solve(state.goal, state), N = 7 * state.m;
+    if (!p) { el("out").innerHTML = noPlan(); bindFixes(); return; }
+    var days = arrange(p.counts, state.m);
+    var slot = state.m === 1 ? ["Dinner"] : ["Lunch", "Dinner"];
+    var rows = days.map(function(day, i){
+      return '<div class="day"><div class="d">' + DAYS[i] + "</div>" + day.map(function(id, j){
+        var m = BYID[id];
+        return '<div class="meal"><div class="n">' + m.name + '</div><div class="m">' + slot[j] + " · " + m.calories + " kcal · " + money(m.price) + ' · <span class="star">★</span> ' + m.rating.toFixed(1) + "</div></div>";
+      }).join("") + "</div>";
+    }).join("");
+    var a = p.avg, targets = [];
+    if (G.fat_max != null) targets.push("fat " + n1(a.fat) + " g (max " + G.fat_max + ")");
+    if (G.carbs_max != null) targets.push("carbs " + n1(a.carbs) + " g (max " + G.carbs_max + ")");
+    targets.push("fiber " + n1(a.fiber) + " g (min " + G.fiber_min + ")");
+    targets.push("sodium " + n0(a.sodium) + " mg (max " + n0(G.sodium_max) + ")");
+    el("out").innerHTML =
+      '<div class="hero"><span class="big">' + a.rating.toFixed(2) + '</span><span class="unit"><span class="star">★</span> average rating</span></div>' +
+      '<div class="stats"><div class="stat"><div class="k">Weekly price</div><div class="v">' + money(p.price) + '</div></div>' +
+      '<div class="stat"><div class="k">Price per meal</div><div class="v">' + money(p.price / N) + '</div></div>' +
+      '<div class="stat"><div class="k">Different meals</div><div class="v">' + p.distinct + " of " + N + "</div></div></div>" +
+      '<div class="week-h"><h3>Your 7 days</h3><span>' + N + " meals, " + G.name.toLowerCase() + "</span></div>" +
+      '<div class="week" style="--m:' + state.m + '">' + rows + "</div>" +
+      '<div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Meets every ' + G.name.toLowerCase() + " target.</b> Every meal has " + G.cal_min + " to " + G.cal_max + " kcal and at least " + G.protein_min + " g protein. Weekly average per meal: " + targets.join(", ") + ".</span></div>";
+  }
+  var fixes = [];
+  function noPlan(){
+    var G = GOALS[state.goal], N = 7 * state.m, k = fits(state.goal, state.diet).length, dietW = DIET_WORD[state.diet];
+    var msg = "", cheap = solve(state.goal, state, true);
+    fixes = [];
+    if (cheap) {
+      var b = Math.ceil(cheap.price);
+      msg = "<p><b>Your budget is too low for this goal.</b> The cheapest week that meets the " + G.name.toLowerCase() + " targets costs " + money(cheap.price) + ".</p>";
+      fixes.push({ label: "Use a $" + b + " budget", apply: function(){ state.budget = b; } });
+    } else {
+      msg = "<p><b>Not enough meals fit.</b> Only " + k + " of our 50 meals " + (dietW ? "are " + dietW + " and " : "") + "fit the " + G.name.toLowerCase() + " targets" + (k * state.rep < N ? ", and a " + N + "-meal week with each meal at most " + (state.rep === 1 ? "once" : state.rep === 2 ? "twice" : "3 times") + " needs more." : ".") + "</p>";
+      if (state.rep < 3 && solve(state.goal, Object.assign({}, state, { rep: 3 }), true)) fixes.push({ label: "Allow a meal 3 times", apply: function(){ state.rep = 3; var c3 = solve(state.goal, state, true); if (c3 && c3.price > state.budget) state.budget = Math.ceil(c3.price); } });
+      if (state.m === 2 && solve(state.goal, Object.assign({}, state, { m: 1 }), true)) fixes.push({ label: "Switch to dinner only", apply: function(){ state.m = 1; state.budget = Math.round(state.budget / 2); var c1 = solve(state.goal, state, true); if (c1 && c1.price > state.budget) state.budget = Math.ceil(c1.price); } });
+      if (!fixes.length) msg += "<p>Try another goal or diet. For Meal Lab, this is a gap in the menu.</p>";
+    }
+    return '<div class="err">' + msg + fixes.map(function(f, i){ return '<button class="btn primary" type="button" data-fix="' + i + '">' + f.label + "</button> "; }).join("") + "</div>";
+  }
+  function bindFixes(){ el("out").querySelectorAll("[data-fix]").forEach(function(b){ b.onclick = function(){ fixes[+b.getAttribute("data-fix")].apply(); renderAll(); }; }); }
+  function renderCmp(){
+    el("cmp").innerHTML = ORDER.map(function(g){
+      var p = solve(g, state), k = fits(g, state.diet).length;
+      return '<tr tabindex="0" data-g="' + g + '" class="' + (g === state.goal ? "active" : "") + '"><td>' + GOALS[g].name + "</td><td>" + k + "</td>" +
+        (p ? "<td>" + money(p.price) + '</td><td><span class="star">★</span> ' + p.avg.rating.toFixed(2) + "</td>" : '<td class="none" colspan="2">no plan with these preferences</td>') + "</tr>";
+    }).join("");
+  }
+  function howHTML(){
+    var G = GOALS[state.goal], N = 7 * state.m, p = solve(state.goal, state), k = fits(state.goal, state.diet).length;
+    var rows = [["Meals in the week", N], ["Meals that fit your goal and diet", k + " of 50"], ["Weekly price", "at most $" + state.budget], ["Same meal", "at most " + state.rep + (state.rep === 1 ? " time" : " times")]];
+    if (G.fat_max != null) rows.push(["Average fat per meal", "at most " + G.fat_max + " g"]);
+    if (G.carbs_max != null) rows.push(["Average carbs per meal", "at most " + G.carbs_max + " g"]);
+    rows.push(["Average fiber per meal", "at least " + G.fiber_min + " g"]);
+    rows.push(["Average sodium per meal", "at most " + n0(G.sodium_max) + " mg"]);
+    var units = function(x, u){ return n0(x) + " " + u; };
+    var lines = ["Maximize     total rating of the meals in the week", "Subject to", "  Number of meals in the week = " + N, "  Total price ≤ $" + state.budget];
+    if (G.fat_max != null) lines.push("  Total fat ≤ " + N + " meals × " + G.fat_max + " g = " + units(N * G.fat_max, "g"));
+    if (G.carbs_max != null) lines.push("  Total carbs ≤ " + N + " meals × " + G.carbs_max + " g = " + units(N * G.carbs_max, "g"));
+    lines.push("  Total fiber ≥ " + N + " meals × " + G.fiber_min + " g = " + units(N * G.fiber_min, "g"));
+    lines.push("  Total sodium ≤ " + N + " meals × " + n0(G.sodium_max) + " mg = " + units(N * G.sodium_max, "mg"));
+    lines.push("  Times each meal is used: whole number from 0 to " + state.rep);
+    return "<h4>What the planner decides</h4><p>For each meal on the menu, <b>how many times it appears in your week</b>. These are the decision variables, one for each meal.</p>" +
+      "<h4>What it aims for</h4><p>The <b>highest average customer rating</b> across the meals in your week.</p>" +
+      "<h4>The rules every plan follows</h4><p>First, the planner keeps only meals that fit your diet and the " + G.name.toLowerCase() + " window: " + G.cal_min + " to " + G.cal_max + " kcal and at least " + G.protein_min + " g protein per meal. Then it picks among them subject to these constraints:</p>" +
+      rows.map(function(r){ return '<div class="mrow"><span class="ml">' + r[0] + '</span><span class="mv">' + r[1] + "</span></div>"; }).join("") +
+      "<p style=\"margin-top:12px\">Averages let the plan pair a saltier favorite with lighter meals. After the planner picks the meals, it spreads them over the week so the same meal does not land on back-to-back days.</p>" +
+      '<div class="tech"><b>The model for your current choices, as you would set it up in Excel Solver</b>\n' + lines.join("\n") + "\n\nSolved in your browser with javascript-lp-solver." + (p ? " Current answer: average rating " + p.avg.rating.toFixed(2) + ", price " + money(p.price) + "." : " No plan meets all constraints right now.") + "\nConcept adapted from Kuang Xu's open-source meal-lab project.</div>";
+  }
+  function renderAll(){ renderTabs(); renderControls(); renderOut(); renderCmp(); }
+
+  /* ---------- events ---------- */
+  el("tabs").addEventListener("click", function(e){ var b = e.target.closest(".tab"); if (b) { state.goal = b.getAttribute("data-g"); renderAll(); } });
+  el("cmp").addEventListener("click", function(e){ var r = e.target.closest("tr"); if (r) { state.goal = r.getAttribute("data-g"); renderAll(); } });
+  el("cmp").addEventListener("keydown", function(e){ if (e.key === "Enter") { var r = e.target.closest("tr"); if (r) { state.goal = r.getAttribute("data-g"); renderAll(); } } });
+  el("mSeg").addEventListener("click", function(e){ var b = e.target.closest("button"); if (!b) return; var m = +b.getAttribute("data-v"); if (m !== state.m) { state.budget = Math.round(state.budget * m / state.m); state.m = m; } renderAll(); });
+  el("dietSeg").addEventListener("click", function(e){ var b = e.target.closest("button"); if (b) { state.diet = b.getAttribute("data-v"); renderAll(); } });
+  el("repSeg").addEventListener("click", function(e){ var b = e.target.closest("button"); if (b) { state.rep = +b.getAttribute("data-v"); renderAll(); } });
+  el("in-budget").addEventListener("input", function(e){ var v = parseFloat(e.target.value); if (isFinite(v) && v >= 0) { state.budget = v; renderOut(); renderCmp(); } });
+  el("in-budget").addEventListener("blur", renderControls);
+  el("reset").onclick = function(){ state = Object.assign({}, EXAMPLE, { theme: state.theme }); renderAll(); };
+
+  function openHow(){ el("howBody").innerHTML = howHTML(); el("howModal").classList.add("open"); el("howClose").focus(); }
+  function closeHow(){ el("howModal").classList.remove("open"); }
+  el("howBtn").onclick = openHow;
+  el("howClose").onclick = closeHow;
+  el("howModal").addEventListener("click", function(e){ if (e.target === el("howModal")) closeHow(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeHow(); });
+
+  /* ---------- theme ---------- */
+  var SUN = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  var MOON = '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/>';
+  function isDark(){ var t = document.documentElement.getAttribute("data-theme");
+    if (t === "dark" || t === "light") return t === "dark";
+    return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches); }
+  function syncIcon(){ el("themeIcon").innerHTML = isDark() ? SUN : MOON; }
+  el("themeBtn").onclick = function(){ var t = isDark() ? "light" : "dark"; document.documentElement.setAttribute("data-theme", t); try { localStorage.setItem("meallab-theme", t); } catch (err) {} syncIcon(); };
+  try { var saved = localStorage.getItem("meallab-theme"); if (saved === "dark" || saved === "light") document.documentElement.setAttribute("data-theme", saved); } catch (err) {}
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", syncIcon); }
+  if (window.MutationObserver) { new MutationObserver(syncIcon).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] }); }
+  syncIcon();
+
+  if (typeof solver === "undefined") { el("out").innerHTML = '<div class="err"><p><b>The optimizer did not load.</b> This page needs an internet connection to load its solver. Reload the page to try again.</p></div>'; renderTabs(); renderControls(); return; }
+  renderAll();
+})();
+</script>
+</body>
+</html>
